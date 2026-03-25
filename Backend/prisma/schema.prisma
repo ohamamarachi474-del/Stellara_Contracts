@@ -20,10 +20,10 @@ model User {
   pushSubscription Json?   @map("push_subscription")
 
   // Encrypted PII fields
-  emailEncrypted   Json?    @map("email_encrypted")
-  phoneEncrypted   Json?    @map("phone_encrypted")
-  ssnEncrypted    Json?    @map("ssn_encrypted")
-  addressEncrypted Json?    @map("address_encrypted")
+  emailEncrypted   Json? @map("email_encrypted")
+  phoneEncrypted   Json? @map("phone_encrypted")
+  ssnEncrypted     Json? @map("ssn_encrypted")
+  addressEncrypted Json? @map("address_encrypted")
 
   // Auth fields
   roles              Role[]  @default([USER])
@@ -191,15 +191,15 @@ model NotificationSetting {
 }
 
 model Notification {
-  id        String           @id @default(cuid())
-  userId    String           @map("user_id")
-  user      User             @relation(fields: [userId], references: [id])
-  type      NotificationType
-  title     String
-  message   String
-  read      Boolean          @default(false)
-  data      Json? // Optional metadata (e.g., projectId)
-  createdAt DateTime               @default(now()) @map("created_at")
+  id         String                 @id @default(cuid())
+  userId     String                 @map("user_id")
+  user       User                   @relation(fields: [userId], references: [id])
+  type       NotificationType
+  title      String
+  message    String
+  read       Boolean                @default(false)
+  data       Json? // Optional metadata (e.g., projectId)
+  createdAt  DateTime               @default(now()) @map("created_at")
   deliveries NotificationDelivery[]
 
   @@index([userId])
@@ -333,16 +333,16 @@ enum Permission {
   UPDATE_PROJECT
   DELETE_PROJECT
   VIEW_PROJECT
-  
+
   // Contribution Permissions
   MAKE_CONTRIBUTION
   VIEW_CONTRIBUTION
-  
+
   // User/Admin Permissions
   MANAGE_USERS
   MANAGE_ROLES
   VIEW_SENSITIVE_DATA
-  
+
   // System Permissions
   MANAGE_SYSTEM
 }
@@ -357,18 +357,18 @@ model TokenBlacklist {
 }
 
 model EncryptionAuditLog {
-  id              String   @id @default(cuid())
-  keyId           String   @map("key_id")
-  userId          String?  @map("user_id")
-  action          String   // ENCRYPT, DECRYPT, KEY_ROTATE, KEY_REVOKE
-  field           String?  @map("field_name")
-  table           String?  @map("table_name")
-  timestamp       DateTime @default(now())
-  ipAddress       String   @map("ip_address")
-  userAgent       String?  @map("user_agent")
-  success         Boolean  @default(false)
-  error           String?  @map("error_message")
-  processingTime  Int      @map("processing_time_ms")
+  id             String   @id @default(cuid())
+  keyId          String   @map("key_id")
+  userId         String?  @map("user_id")
+  action         String // ENCRYPT, DECRYPT, KEY_ROTATE, KEY_REVOKE
+  field          String?  @map("field_name")
+  table          String?  @map("table_name")
+  timestamp      DateTime @default(now())
+  ipAddress      String   @map("ip_address")
+  userAgent      String?  @map("user_agent")
+  success        Boolean  @default(false)
+  error          String?  @map("error_message")
+  processingTime Int      @map("processing_time_ms")
 
   @@index([timestamp])
   @@index([keyId])
@@ -387,13 +387,13 @@ datasource db {
 }
 
 model Tenant {
-  id          String   @id @default(uuid())
-  slug        String   @unique
-  name        String
-  status      TenantStatus @default(ACTIVE)
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String       @id @default(uuid())
+  slug      String       @unique
+  name      String
+  status    TenantStatus @default(ACTIVE)
+  metadata  Json?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   users       User[]
   calls       Call[]
@@ -406,15 +406,15 @@ model Tenant {
 }
 
 model User {
-  id         String   @id @default(uuid())
-  tenantId   String
-  email      String
+  id            String   @id @default(uuid())
+  tenantId      String
+  email         String
   walletAddress String?
-  name       String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  name          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
 
   @@unique([tenantId, email])
   @@unique([tenantId, walletAddress])
@@ -434,8 +434,8 @@ model Call {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  stakes      StakeLedger[]
+  tenant Tenant        @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  stakes StakeLedger[]
 
   @@index([tenantId, id])
   @@index([tenantId, outcome])
@@ -445,26 +445,26 @@ model Call {
 }
 
 model StakeLedger {
-  id               String            @id @default(uuid())
+  id               String           @id @default(uuid())
   tenantId         String
   callId           String
   userAddress      String
-  amount           Decimal           @db.Decimal(18, 4)
+  amount           Decimal          @db.Decimal(18, 4)
   position         Position
-  profitLoss       Decimal?          @db.Decimal(18, 4)
+  profitLoss       Decimal?         @db.Decimal(18, 4)
   transactionHash  String?
-  resolutionStatus ResolutionStatus  @default(PENDING)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  resolutionStatus ResolutionStatus @default(PENDING)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  call             Call              @relation(fields: [callId], references: [id], onDelete: Restrict)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  call   Call   @relation(fields: [callId], references: [id], onDelete: Restrict)
 
+  @@unique([tenantId, transactionHash])
   @@index([tenantId, id])
   @@index([tenantId, callId])
   @@index([tenantId, userAddress])
   @@index([tenantId, createdAt])
-  @@unique([tenantId, transactionHash])
   @@map("stake_ledger")
 }
 
@@ -478,8 +478,8 @@ model Claim {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  pool        Pool?       @relation(fields: [poolId], references: [id], onDelete: SetNull)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  pool   Pool?  @relation(fields: [poolId], references: [id], onDelete: SetNull)
 
   @@index([tenantId, id])
   @@index([tenantId, poolId])
@@ -490,17 +490,17 @@ model Claim {
 }
 
 model Pool {
-  id                String   @id @default(uuid())
-  tenantId          String
-  name              String
-  totalCapacity     Decimal  @db.Decimal(18, 4) @default(0)
-  lockedAmount      Decimal  @db.Decimal(18, 4) @default(0)
-  availableLiquidity Decimal @db.Decimal(18, 4) @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                 String   @id @default(uuid())
+  tenantId           String
+  name               String
+  totalCapacity      Decimal  @default(0) @db.Decimal(18, 4)
+  lockedAmount       Decimal  @default(0) @db.Decimal(18, 4)
+  availableLiquidity Decimal  @default(0) @db.Decimal(18, 4)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  claims            Claim[]
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  claims Claim[]
 
   @@unique([tenantId, name])
   @@index([tenantId, id])
@@ -538,14 +538,14 @@ enum ClaimStatus {
 }
 
 model TenantMember {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   tenantId  String
   userId    String
   role      TenantRole @default(MEMBER)
-  createdAt DateTime @default(now())
+  createdAt DateTime   @default(now())
 
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, userId])
   @@index([tenantId, role])
@@ -556,4 +556,64 @@ enum TenantRole {
   OWNER
   ADMIN
   MEMBER
+}
+
+}
+
+// ─── Centralized Config Management ───────────────────────────────────────────
+
+model ConfigEntry {
+  id        String      @id @default(uuid())
+  key       String
+  value     String
+  scope     ConfigScope @default(GLOBAL)
+  tenantId  String?     @map("tenant_id")
+  userId    String?     @map("user_id")
+  encrypted Boolean     @default(false)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  @@unique([key, scope, tenantId, userId])
+  @@index([scope, tenantId])
+  @@index([key])
+  @@map("config_entries")
+}
+
+model FeatureFlag {
+  id         String   @id @default(uuid())
+  key        String
+  enabled    Boolean  @default(false)
+  tenantId   String?  @map("tenant_id")
+  rolloutPct Int      @default(100) @map("rollout_pct")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([key, tenantId])
+  @@index([key])
+  @@index([tenantId])
+  @@map("feature_flags")
+}
+
+model ConfigAuditLog {
+  id        String      @id @default(uuid())
+  key       String
+  oldValue  String?     @map("old_value")
+  newValue  String?     @map("new_value")
+  scope     ConfigScope
+  tenantId  String?     @map("tenant_id")
+  actorId   String?     @map("actor_id")
+  action    String // SET, DELETE, ROTATE_SECRET
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@index([key])
+  @@index([tenantId])
+  @@index([createdAt])
+  @@map("config_audit_logs")
+}
+
+enum ConfigScope {
+  GLOBAL
+  TENANT
+  USER
 }
