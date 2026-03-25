@@ -4,7 +4,6 @@ import { AsyncContextService } from './services/async-context.service';
 import { StructuredLoggerService } from './services/structured-logger.service';
 import { CorrelationIdMiddleware } from './middleware/correlation-id.middleware';
 import { ClsMiddleware } from './middleware/cls-middleware';
-import { RequestLoggingInterceptor } from './interceptors/request-logging.interceptor';
 import { LoggingModuleOptions } from './interfaces/logging-module-options.interface';
 
 @Global()
@@ -30,7 +29,6 @@ export class LoggingModule {
         inject: [ConfigService, AsyncContextService],
       },
       CorrelationIdMiddleware,
-      RequestLoggingInterceptor,
     ];
 
     return {
@@ -41,7 +39,6 @@ export class LoggingModule {
         AsyncContextService,
         StructuredLoggerService,
         CorrelationIdMiddleware,
-        RequestLoggingInterceptor,
         'LOGGER_SERVICE',
         ClsMiddleware,
       ],
@@ -73,7 +70,6 @@ export class LoggingModule {
         inject: [ConfigService, AsyncContextService],
       },
       CorrelationIdMiddleware,
-      RequestLoggingInterceptor,
     ];
 
     return {
@@ -84,7 +80,6 @@ export class LoggingModule {
         AsyncContextService,
         StructuredLoggerService,
         CorrelationIdMiddleware,
-        RequestLoggingInterceptor,
         'LOGGER_SERVICE',
         ClsMiddleware,
       ],
