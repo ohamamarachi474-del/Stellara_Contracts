@@ -1,5 +1,8 @@
 #![no_std]
 
+use shared::circuit_breaker::{
+    CircuitBreaker, CircuitBreakerConfig, CircuitBreakerState, PauseLevel,
+};
 use shared::fees::FeeManager;
 use shared::governance::{GovernanceManager, GovernanceRole, UpgradeProposal};
 use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol};
@@ -257,9 +260,11 @@ impl UpgradeableTradingContract {
 
         let storage = env.storage().persistent();
 
-        if storage.get(&storage_keys::PAUSE).unwrap_or(false) {
-            return Err(TradeError::ContractPaused);
-        }
+        // Check pause state via CircuitBreaker
+        CircuitBreaker::require_not_paused(&env, symbol_short!("trade"));
+
+        // Track activity for automatic circuit breaker
+        CircuitBreaker::track_activity(&env, amount);
 
         FeeManager::collect_fee(&env, &fee_token, &trader, &fee_recipient, fee_amount)
             .map_err(|_| TradeError::InsufficientBalance)?;
@@ -403,21 +408,48 @@ impl UpgradeableTradingContract {
         trades
     }
 
-    /// Pause the contract (admin only)
-    pub fn pause(env: Env, admin: Address) -> Result<(), TradeError> {
+    /// Set circuit breaker pause level (admin only)
+    pub fn set_pause_level(env: Env, admin: Address, level: PauseLevel) -> Result<(), TradeError> {
         admin.require_auth();
-        require_initialized(&env)?;
-        Self::require_admin_role(&env, &admin)?;
-        env.storage().persistent().set(&storage_keys::PAUSE, &true);
+        CircuitBreaker::set_pause_level(&env, admin, level);
         Ok(())
     }
 
-    /// Unpause the contract (admin only)
+    /// Pause specific function (admin only)
+    pub fn pause_function(env: Env, admin: Address, func_name: Symbol) -> Result<(), TradeError> {
+        admin.require_auth();
+        CircuitBreaker::pause_function(&env, admin, func_name);
+        Ok(())
+    }
+
+    /// Unpause specific function (admin only)
+    pub fn unpause_function(env: Env, admin: Address, func_name: Symbol) -> Result<(), TradeError> {
+        admin.require_auth();
+        CircuitBreaker::unpause_function(&env, admin, func_name);
+        Ok(())
+    }
+
+    /// Get current circuit breaker state
+    pub fn get_cb_state(env: Env) -> CircuitBreakerState {
+        CircuitBreaker::get_state(&env)
+    }
+
+    /// Get current circuit breaker config
+    pub fn get_cb_config(env: Env) -> CircuitBreakerConfig {
+        CircuitBreaker::get_config(&env)
+    }
+
+    /// (LEGACY) Pause the contract - map to Full pause
+    pub fn pause(env: Env, admin: Address) -> Result<(), TradeError> {
+        admin.require_auth();
+        CircuitBreaker::set_pause_level(&env, admin, PauseLevel::Full);
+        Ok(())
+    }
+
+    /// (LEGACY) Unpause the contract - map to None pause
     pub fn unpause(env: Env, admin: Address) -> Result<(), TradeError> {
         admin.require_auth();
-        require_initialized(&env)?;
-        Self::require_admin_role(&env, &admin)?;
-        env.storage().persistent().set(&storage_keys::PAUSE, &false);
+        CircuitBreaker::set_pause_level(&env, admin, PauseLevel::None);
         Ok(())
     }
 

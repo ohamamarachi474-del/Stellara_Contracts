@@ -1,7 +1,7 @@
 #![no_std]
 
 use shared::circuit_breaker::{
-    CircuitBreaker, CircuitBreakerConfig, CircuitBreakerState, PauseLevel,
+    CircuitBreaker, CircuitBreakerConfig, PauseLevel,
 };
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, String, Symbol,
