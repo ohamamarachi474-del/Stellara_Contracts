@@ -1,6 +1,7 @@
 import { AbiRegistryModule } from './abi-registry/abi-registry.module';
 import { ExperimentsModule } from './experiments/experiments.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { KycModule } from './kyc/kyc.module';
 
 import { AdminModule } from './admin/admin.module';
 import { AppController } from './app.controller';
@@ -90,6 +91,7 @@ import { MultisigModule } from './multisig/multisig.module';
     MultisigModule,
     AnalyticsModule,
     ExperimentsModule,
+    KycModule,
   ],
   controllers: [AppController, UserController, DocsController],
   providers: [AppService],

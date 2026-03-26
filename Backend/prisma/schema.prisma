@@ -49,6 +49,7 @@ model User {
   proposals            TransactionProposal[]
   tenantMembers       TenantMember[]
   experimentAssignments ExperimentAssignment[]
+  verificationSessions VerificationSession[]
 
   @@unique([tenantId, email])
   @@unique([tenantId, walletAddress])
@@ -1213,4 +1214,41 @@ enum ZendeskPriority {
   NORMAL
   HIGH
   URGENT
+}
+
+model VerificationSession {
+  id              String             @id @default(cuid())
+  userId          String             @map("user_id")
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          VerificationStatus @default(PENDING)
+  documentType    DocumentType?      @map("document_type")
+  documentUrl     String?            @map("document_url")
+  selfieUrl       String?            @map("selfie_url")
+  ocrData         Json?              @map("ocr_data")
+  faceMatchScore  Float?             @map("face_match_score")
+  livenessScore   Float?             @map("liveness_score")
+  failureReason   String?            @map("failure_reason")
+  manualReviewBy  String?            @map("manual_review_by")
+  manualReviewAt  DateTime?          @map("manual_review_at")
+  manualNote      String?            @map("manual_note")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([status])
+  @@map("verification_sessions")
+}
+
+enum VerificationStatus {
+  PENDING
+  PROCESSING
+  VERIFIED
+  REJECTED
+  MANUAL_REVIEW
+}
+
+enum DocumentType {
+  PASSPORT
+  DRIVERS_LICENSE
+  NATIONAL_ID
 }
