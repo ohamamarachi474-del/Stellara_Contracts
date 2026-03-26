@@ -7,6 +7,7 @@ import { validateEnv } from './config/env.validation';
 import { DatabaseModule } from './database.module';
 import { AuthModule } from './auth/auth.module';
 import { WebsocketModule } from './websocket/websocket.module';
+import { PaymentModule } from './payment/payment.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nestjs/throttler-storage-redis';
 import { DocsController } from './docs/docs.controller';
@@ -50,6 +51,7 @@ import { AbiRegistryModule } from './abi-registry/abi-registry.module';
     IndexAnalysisModule,
     AuthModule,
     WebsocketModule,
+    PaymentModule,
     // Backup and disaster recovery module
     BackupModule,
     QuotaModule,
