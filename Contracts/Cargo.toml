@@ -6,6 +6,7 @@ members = [
     "contracts/academy",
     "contracts/academy-rewards",
     "contracts/synthetic-assets",
+    "contracts/stablecoin_reserve",
 
     "contracts/tcr",
     "integration-tests",

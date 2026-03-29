@@ -55,6 +55,11 @@ model User {
   clearingMarginAccounts ClearingMarginAccount[]
   defaultFundContributions DefaultFundContribution[]
   syntheticCDPs        SyntheticCDP[]
+  crossChainSwaps      CrossChainSwap[]
+  affiliate            Affiliate?
+  referredSignups      ReferralSignup[]      @relation("ReferredUser")
+  convertingConversions ReferralConversion[] @relation("ConvertingUser")
+
 
   @@unique([tenantId, email])
   @@unique([tenantId, walletAddress])
@@ -2588,5 +2593,363 @@ model DiscussionReply {
 
   @@index([discussionId])
   @@map("discussion_replies")
+// ─── Affiliate Marketing Platform Models ───────────────────────────────────────
+
+model Affiliate {
+  id                String   @id @default(cuid())
+  userId            String   @unique @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referralCode      String   @unique @map("referral_code")
+  status            AffiliateStatus @default(PENDING)
+  tier              Int      @default(1)
+  customLandingPage String?  @map("custom_landing_page")
+  bio               String?
+  profileImage      String?  @map("profile_image")
+  socialLinks       Json?    @map("social_links")
+  marketingPreferences Json?  @map("marketing_preferences")
+  approvedAt        DateTime? @map("approved_at")
+  rejectedAt        DateTime? @map("rejected_at")
+  rejectionReason   String?  @map("rejection_reason")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  referralLinks     ReferralLink[]
+  commissions       Commission[]
+  payouts           Payout[]
+  performanceMetrics AffiliatePerformanceMetric[]
+  fraudFlags        AffiliateFraudFlag[]
+  externalAffiliateAccounts ExternalAffiliateAccount[]
+
+  @@index([userId])
+  @@index([referralCode])
+  @@index([status])
+  @@index([tier])
+  @@map("affiliates")
+}
+
+model ReferralLink {
+  id          String   @id @default(cuid())
+  affiliateId String   @map("affiliate_id")
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  code        String   @unique
+  name        String?
+  description String?
+  destinationUrl String? @map("destination_url")
+  campaignId  String?  @map("campaign_id")
+  isActive    Boolean  @default(true) @map("is_active")
+  clickCount  Int      @default(0) @map("click_count")
+  signupCount Int      @default(0) @map("signup_count")
+  conversionCount Int  @default(0) @map("conversion_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  clicks      ReferralClick[]
+  signups     ReferralSignup[]
+  conversions ReferralConversion[]
+
+  @@index([affiliateId])
+  @@index([code])
+  @@index([isActive])
+  @@map("referral_links")
+}
+
+model ReferralClick {
+  id          String   @id @default(cuid())
+  referralLinkId String @map("referral_link_id")
+  referralLink ReferralLink @relation(fields: [referralLinkId], references: [id], onDelete: Cascade)
+  ipAddress   String   @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  referer     String?
+  country     String?
+  city        String?
+  device      String?
+  browser     String?
+  os          String?
+  timestamp   DateTime @default(now())
+  converted   Boolean  @default(false)
+  fraudScore  Decimal  @default(0) @db.Decimal(5, 4) @map("fraud_score")
+  metadata    Json?
+
+  @@index([referralLinkId])
+  @@index([ipAddress])
+  @@index([timestamp])
+  @@index([converted])
+  @@map("referral_clicks")
+}
+
+model ReferralSignup {
+  id          String   @id @default(cuid())
+  referralLinkId String @map("referral_link_id")
+  referralLink ReferralLink @relation(fields: [referralLinkId], references: [id], onDelete: Cascade)
+  referredUserId String @map("referred_user_id")
+  referredUser User     @relation("ReferredUser", fields: [referredUserId], references: [id])
+  ipAddress   String   @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  timestamp   DateTime @default(now())
+  isConfirmed Boolean  @default(false) @map("is_confirmed")
+  confirmedAt DateTime? @map("confirmed_at")
+  fraudScore  Decimal  @default(0) @db.Decimal(5, 4) @map("fraud_score")
+  metadata    Json?
+
+  @@index([referralLinkId])
+  @@index([referredUserId])
+  @@index([timestamp])
+  @@map("referral_signups")
+}
+
+model ReferralConversion {
+  id          String   @id @default(cuid())
+  referralLinkId String @map("referral_link_id")
+  referralLink ReferralLink @relation(fields: [referralLinkId], references: [id], onDelete: Cascade)
+  referralSignupId String @map("referral_signup_id")
+  referralSignup ReferralSignup @relation(fields: [referralSignupId], references: [id])
+  userId      String   @map("user_id")
+  user        User     @relation("ConvertingUser", fields: [userId], references: [id])
+  type        ConversionType
+  amount      Decimal? @db.Decimal(18, 4)
+  currency    String?  @default("USD")
+  description String?
+  timestamp   DateTime @default(now())
+  commissionEarned Decimal? @db.Decimal(18, 4) @map("commission_earned")
+  metadata    Json?
+
+  @@index([referralLinkId])
+  @@index([referralSignupId])
+  @@index([userId])
+  @@index([type])
+  @@index([timestamp])
+  @@map("referral_conversions")
+}
+
+model Commission {
+  id          String   @id @default(cuid())
+  affiliateId String   @map("affiliate_id")
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  referralConversionId String? @map("referral_conversion_id")
+  referralConversion ReferralConversion? @relation(fields: [referralConversionId], references: [id])
+  tier        Int
+  type        CommissionType
+  amount      Decimal  @db.Decimal(18, 4)
+  currency    String   @default("USD")
+  rate        Decimal  @db.Decimal(5, 4) // Commission rate (e.g., 0.20 for 20%)
+  baseAmount  Decimal? @db.Decimal(18, 4) @map("base_amount") // Original amount that commission is based on
+  status      CommissionStatus @default(PENDING)
+  calculatedAt DateTime @default(now()) @map("calculated_at")
+  paidAt      DateTime? @map("paid_at")
+  payoutId    String?  @map("payout_id")
+  payout      Payout?  @relation(fields: [payoutId], references: [id])
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([affiliateId])
+  @@index([referralConversionId])
+  @@index([status])
+  @@index([tier])
+  @@index([calculatedAt])
+  @@map("commissions")
+}
+
+model Payout {
+  id          String   @id @default(cuid())
+  affiliateId String   @map("affiliate_id")
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  totalAmount Decimal  @db.Decimal(18, 4) @map("total_amount")
+  currency    String   @default("USD")
+  status      PayoutStatus @default(PENDING)
+  paymentMethod String? @map("payment_method")
+  paymentAddress String? @map("payment_address")
+  transactionHash String? @map("transaction_hash")
+  processedAt DateTime? @map("processed_at")
+  failedAt    DateTime? @map("failed_at")
+  failureReason String? @map("failure_reason")
+  periodStart DateTime @map("period_start")
+  periodEnd   DateTime @map("period_end")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  commissions Commission[]
+
+  @@index([affiliateId])
+  @@index([status])
+  @@index([periodStart, periodEnd])
+  @@map("payouts")
+}
+
+model AffiliatePerformanceMetric {
+  id          String   @id @default(cuid())
+  affiliateId String   @map("affiliate_id")
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  period      String   // e.g., "2024-01", "2024-W01", "2024-01-01"
+  periodType  PeriodType @map("period_type")
+  clicks      Int      @default(0)
+  signups     Int      @default(0)
+  conversions Int      @default(0)
+  revenue     Decimal  @default(0) @db.Decimal(18, 4)
+  commission  Decimal  @default(0) @db.Decimal(18, 4)
+  conversionRate Decimal @default(0) @db.Decimal(5, 4) @map("conversion_rate")
+  avgCommissionPerConversion Decimal @default(0) @db.Decimal(18, 4) @map("avg_commission_per_conversion")
+  timestamp   DateTime @default(now())
+
+  @@unique([affiliateId, period, periodType])
+  @@index([affiliateId])
+  @@index([periodType])
+  @@map("affiliate_performance_metrics")
+}
+
+model AffiliateFraudFlag {
+  id          String   @id @default(cuid())
+  affiliateId String   @map("affiliate_id")
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  type        FraudType
+  severity    FraudSeverity @default(LOW)
+  description String
+  evidence    Json?
+  status      FraudStatus @default(ACTIVE)
+  resolvedAt  DateTime? @map("resolved_at")
+  resolvedBy  String?  @map("resolved_by")
+  resolution  String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([affiliateId])
+  @@index([type])
+  @@index([status])
+  @@map("affiliate_fraud_flags")
+}
+
+model ExternalAffiliateAccount {
+  id          String   @id @default(cuid())
+  affiliateId String   @map("affiliate_id")
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  network     ExternalAffiliateNetwork @map("network")
+  externalId  String   @map("external_id")
+  credentials Json?    // Encrypted credentials for API access
+  isActive    Boolean  @default(true) @map("is_active")
+  lastSyncAt  DateTime? @map("last_sync_at")
+  syncStatus  SyncStatus @default(PENDING) @map("sync_status")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([affiliateId, network])
+  @@index([network])
+  @@map("external_affiliate_accounts")
+}
+
+model AffiliateCampaign {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  startDate   DateTime @map("start_date")
+  endDate     DateTime? @map("end_date")
+  commissionRates Json @map("commission_rates") // { "tier1": 0.20, "tier2": 0.10, "tier3": 0.05 }
+  isActive    Boolean  @default(true) @map("is_active")
+  maxPayout   Decimal? @db.Decimal(18, 4) @map("max_payout")
+  targetMetrics Json?   @map("target_metrics")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  referralLinks ReferralLink[]
+
+  @@index([isActive])
+  @@index([startDate, endDate])
+  @@map("affiliate_campaigns")
+}
+
+// Enums for Affiliate Marketing
+enum AffiliateStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+  TERMINATED
+}
+
+enum ConversionType {
+  SIGNUP
+  FIRST_TRADE
+  DEPOSIT
+  TRADING_VOLUME
+  SUBSCRIPTION
+  CUSTOM_ACTION
+}
+
+enum CommissionType {
+  REFERRAL_SIGNUP
+  TRADING_FEES
+  DEPOSIT_COMMISSION
+  SUBSCRIPTION_COMMISSION
+  PERFORMANCE_BONUS
+  TIER_OVERRIDE
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+  DISPUTED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PeriodType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum FraudType {
+  SELF_REFERRAL
+  BOT_TRAFFIC
+  CLICK_FRAUD
+  CONVERSION_FRAUD
+  DUPLICATE_ACCOUNTS
+  INCENTIVIZED_TRAFFIC
+  PROXY_VPN
+  SUSPICIOUS_PATTERN
+}
+
+enum FraudSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FraudStatus {
+  ACTIVE
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum ExternalAffiliateNetwork {
+  SHAREASALE
+  COMMISSION_JUNCTION
+  RAKUTEN
+  IMPACT_RADIUS
+  PEFLY
+  CLICKBANK
+  CUSTOM
+}
+
+enum SyncStatus {
+  PENDING
+  IN_PROGRESS
+  SUCCESS
+  FAILED
 }
 

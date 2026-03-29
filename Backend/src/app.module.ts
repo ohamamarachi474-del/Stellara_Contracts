@@ -72,6 +72,8 @@ import { VoiceTradingModule } from './voice-trading/voice-trading.module';
 import { SyntheticAssetsModule } from './synthetic-assets/synthetic-assets.module';
 import { LongevityModule } from './longevity/longevity.module';
 
+import { MLModelServingModule } from './ml-model-serving/ml-model-serving.module';
+import { SiemModule } from './siem/siem.module';
 
 @Module({
   imports: [
@@ -167,6 +169,8 @@ import { LongevityModule } from './longevity/longevity.module';
     VoiceTradingModule,
     SyntheticAssetsModule,
     LongevityModule,
+    MLModelServingModule,
+    SiemModule,
 
   ],
   controllers: [AppController, UserController, DocsController],
