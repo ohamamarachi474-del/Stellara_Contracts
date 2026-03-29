@@ -12,7 +12,7 @@ import {
   PaymentRoutingRequest,
   OptimizationObjective,
   UserPreferenceWeights,
-} from '../types/payment-routing.types';
+} from './types/payment-routing.types';
 
 /**
  * Payment Routing Controller
