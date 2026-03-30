@@ -155,10 +155,8 @@ jobs:
 
       - name: Generate performance report
         run: |
-          # Generate HTML report using k6 reporter
-          k6 run --out json=report.json tests/load/${{ matrix.test-suite }}.js || true
-          
-          # Create summary
+          # Summarize the load-test run that already completed above instead of
+          # rerunning the full scenario during report generation.
           echo "## Load Test Results - ${{ matrix.test-suite }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Test Type: ${{ needs.setup.outputs.test-type }}" >> $GITHUB_STEP_SUMMARY
