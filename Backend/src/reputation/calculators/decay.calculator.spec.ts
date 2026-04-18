@@ -1,3 +1,4 @@
+import { describe, it } from 'node:test';
 import { timeDecayWeight } from './decay.calculator';
 
 const NOW = new Date('2024-06-15T00:00:00.000Z');

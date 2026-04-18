@@ -56,12 +56,10 @@ class MilestoneRejectedHandler implements IEventHandler {
           'MILESTONE',
           'Project Milestone Failed',
           `A project you back (${project.title}) has a failed milestone!`,
-          { projectId: project.id, milestoneId: data.milestoneId },
+          { projectId: project.id, milestoneId: data.milestoneId }
         );
       } catch (e) {
-        this.logger.error(
-          `Failed to notify investor ${contribution.investorId} of milestone: ${e.message}`,
-        );
+        this.logger.error(`Failed to notify investor ${contribution.investorId} of milestone: ${e.message}`);
       }
     }
 
@@ -69,27 +67,6 @@ class MilestoneRejectedHandler implements IEventHandler {
     if (project.creatorId) {
       await this.reputationService.updateTrustScore(project.creatorId);
       this.logger.log(`Updated trust score for creator ${project.creatorId}`);
-    }
-  }
-
-  async undo(event: ParsedContractEvent): Promise<void> {
-    const data = event.data as any;
-    this.logger.log(`Rolling back MILESTONE_REJECTED for project ${data.projectId}`);
-
-    const project = await this.prisma.project.findUnique({
-      where: { contractId: data.projectId.toString() },
-    });
-
-    if (project) {
-      // Revert milestone status to APPROVED
-      await this.prisma.milestone.updateMany({
-        where: { projectId: project.id },
-        data: { status: 'APPROVED' },
-      });
-
-      if (project.creatorId) {
-        await this.reputationService.updateTrustScore(project.creatorId);
-      }
     }
   }
 }
@@ -115,7 +92,7 @@ class ProjectCreatedHandler implements IEventHandler {
   readonly eventType = ContractEventType.PROJECT_CREATED;
   private readonly logger = new Logger(ProjectCreatedHandler.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   validate(event: ParsedContractEvent): boolean {
     const data = event.data as unknown as ProjectCreatedEvent;
@@ -165,16 +142,6 @@ class ProjectCreatedHandler implements IEventHandler {
 
     this.logger.log(`Created/updated project ${data.projectId}`);
   }
-
-  async undo(event: ParsedContractEvent): Promise<void> {
-    const data = event.data as unknown as ProjectCreatedEvent;
-    this.logger.log(`Rolling back PROJECT_CREATED for project ${data.projectId}`);
-
-    // Delete the project
-    await this.prisma.project.delete({
-      where: { contractId: data.projectId.toString() },
-    });
-  }
 }
 
 /**
@@ -187,7 +154,7 @@ class ContributionMadeHandler implements IEventHandler {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
-  ) {}
+  ) { }
 
   validate(event: ParsedContractEvent): boolean {
     const data = event.data as unknown as ContributionMadeEvent;
@@ -249,41 +216,13 @@ class ContributionMadeHandler implements IEventHandler {
         'CONTRIBUTION',
         'Contribution Successful!',
         `Your contribution of ${data.amount} to project ${project.title} was successful.`,
-        { projectId: project.id, amount: data.amount },
+        { projectId: project.id, amount: data.amount }
       );
     } catch (e) {
-      this.logger.error(
-        `Failed to send contribution notification to user ${user.id}: ${e.message}`,
-      );
+      this.logger.error(`Failed to send contribution notification to user ${user.id}: ${e.message}`);
     }
 
     this.logger.log(`Recorded contribution of ${data.amount} for project ${data.projectId}`);
-  }
-
-  async undo(event: ParsedContractEvent): Promise<void> {
-    const data = event.data as unknown as ContributionMadeEvent;
-    this.logger.log(`Rolling back CONTRIBUTION_MADE for project ${data.projectId}`);
-
-    // Delete the contribution
-    await this.prisma.contribution.delete({
-      where: { transactionHash: event.transactionHash },
-    });
-
-    // Revert project current funds
-    const project = await this.prisma.project.findUnique({
-      where: { contractId: data.projectId.toString() },
-    });
-
-    if (project) {
-      await this.prisma.project.update({
-        where: { id: project.id },
-        data: {
-          currentFunds: {
-            decrement: BigInt(data.amount),
-          },
-        },
-      });
-    }
   }
 }
 
@@ -298,7 +237,7 @@ class MilestoneApprovedHandler implements IEventHandler {
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
     private readonly reputationService: ReputationService,
-  ) {}
+  ) { }
 
   validate(event: ParsedContractEvent): boolean {
     const data = event.data as unknown as MilestoneApprovedEvent;
@@ -349,12 +288,10 @@ class MilestoneApprovedHandler implements IEventHandler {
           'MILESTONE',
           'Project Milestone Reached!',
           `A project you back (${project.title}) has reached a new milestone!`,
-          { projectId: project.id, milestoneId: data.milestoneId },
+          { projectId: project.id, milestoneId: data.milestoneId }
         );
       } catch (e) {
-        this.logger.error(
-          `Failed to notify investor ${contribution.investorId} of milestone: ${e.message}`,
-        );
+        this.logger.error(`Failed to notify investor ${contribution.investorId} of milestone: ${e.message}`);
       }
     }
 
@@ -375,7 +312,7 @@ class FundsReleasedHandler implements IEventHandler {
   readonly eventType = ContractEventType.FUNDS_RELEASED;
   private readonly logger = new Logger(FundsReleasedHandler.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   validate(event: ParsedContractEvent): boolean {
     const data = event.data as unknown as FundsReleasedEvent;
@@ -411,26 +348,6 @@ class FundsReleasedHandler implements IEventHandler {
 
     this.logger.log(`Released funds for project ${data.projectId}`);
   }
-
-  async undo(event: ParsedContractEvent): Promise<void> {
-    const data = event.data as unknown as FundsReleasedEvent;
-    this.logger.log(`Rolling back FUNDS_RELEASED for project ${data.projectId}`);
-
-    const project = await this.prisma.project.findUnique({
-      where: { contractId: data.projectId.toString() },
-    });
-
-    if (project) {
-      // Revert milestone to APPROVED status
-      await this.prisma.milestone.updateMany({
-        where: { projectId: project.id },
-        data: {
-          status: 'APPROVED',
-          completionDate: null,
-        },
-      });
-    }
-  }
 }
 
 /**
@@ -440,7 +357,7 @@ class ProjectCompletedHandler implements IEventHandler {
   readonly eventType = ContractEventType.PROJECT_COMPLETED;
   private readonly logger = new Logger(ProjectCompletedHandler.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   validate(event: ParsedContractEvent): boolean {
     const data = event.data as unknown as ProjectStatusEvent;
@@ -459,16 +376,6 @@ class ProjectCompletedHandler implements IEventHandler {
 
     this.logger.log(`Marked project ${data.projectId} as completed`);
   }
-
-  async undo(event: ParsedContractEvent): Promise<void> {
-    const data = event.data as unknown as ProjectStatusEvent;
-    this.logger.log(`Rolling back PROJECT_COMPLETED for project ${data.projectId}`);
-
-    await this.prisma.project.updateMany({
-      where: { contractId: data.projectId.toString() },
-      data: { status: 'ACTIVE' },
-    });
-  }
 }
 
 /**
@@ -478,7 +385,7 @@ class ProjectFailedHandler implements IEventHandler {
   readonly eventType = ContractEventType.PROJECT_FAILED;
   private readonly logger = new Logger(ProjectFailedHandler.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   validate(event: ParsedContractEvent): boolean {
     const data = event.data as unknown as ProjectStatusEvent;
@@ -496,16 +403,6 @@ class ProjectFailedHandler implements IEventHandler {
     });
 
     this.logger.log(`Marked project ${data.projectId} as failed/cancelled`);
-  }
-
-  async undo(event: ParsedContractEvent): Promise<void> {
-    const data = event.data as unknown as ProjectStatusEvent;
-    this.logger.log(`Rolling back PROJECT_FAILED for project ${data.projectId}`);
-
-    await this.prisma.project.updateMany({
-      where: { contractId: data.projectId.toString() },
-      data: { status: 'ACTIVE' },
-    });
   }
 }
 
@@ -531,12 +428,8 @@ export class EventHandlerService implements IEventHandlerRegistry {
   private registerHandlers(): void {
     this.register(new ProjectCreatedHandler(this.prisma));
     this.register(new ContributionMadeHandler(this.prisma, this.notificationService));
-    this.register(
-      new MilestoneApprovedHandler(this.prisma, this.notificationService, this.reputationService),
-    );
-    this.register(
-      new MilestoneRejectedHandler(this.prisma, this.notificationService, this.reputationService),
-    );
+    this.register(new MilestoneApprovedHandler(this.prisma, this.notificationService, this.reputationService));
+    this.register(new MilestoneRejectedHandler(this.prisma, this.notificationService, this.reputationService));
     this.register(new FundsReleasedHandler(this.prisma));
     this.register(new ProjectCompletedHandler(this.prisma));
     this.register(new ProjectFailedHandler(this.prisma));
