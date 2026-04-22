@@ -1,12 +1,14 @@
 import { Controller, Get, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
-import { PrismaService } from './prisma.service';
-import { UserResponseDto, UserNotFoundDto } from './common/dto/common.dto';
+import { UserService } from './user.service';
+import { UserResponseDto, UserNotFoundDto } from '../common/dto/common.dto';
+
+import { User } from '@prisma/client';
 
 @ApiTags('users')
 @Controller('api/user')
 export class UserController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly userService: UserService) {}
 
   @Get(':id')
   @ApiOperation({
@@ -29,8 +31,9 @@ export class UserController {
     type: UserNotFoundDto,
   })
   async getUser(@Param('id') id: string): Promise<UserResponseDto | UserNotFoundDto> {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user: User | null = await this.userService.getUserById(id);
     if (!user) return { error: 'User not found' };
+    
     // Only return relevant fields
     return {
       id: user.id,

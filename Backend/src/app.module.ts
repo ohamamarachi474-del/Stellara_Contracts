@@ -31,7 +31,7 @@ import { SessionModule } from './sessions/session.module';
 import { TenantModule } from './tenant/tenant.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
-import { UserController } from './user.controller';
+import { UserModule } from './user/user.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { validateEnv } from './config/env.validation';
@@ -96,8 +96,9 @@ import { MultisigModule } from './multisig/multisig.module';
     KycModule,
     CollateralModule,
     GeolocationModule,
+    UserModule,
   ],
-  controllers: [AppController, UserController, DocsController],
+  controllers: [AppController, DocsController],
   providers: [AppService],
 })
 export class AppModule { }
